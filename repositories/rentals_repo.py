@@ -1,7 +1,8 @@
-# Repository pour la gestion des locations dans la base de données
+# Importation des types pour les annotations
 from typing import List, Optional, Dict, Any
+# Importation de datetime pour les dates
 from datetime import datetime
-
+# Importation de la fonction pour obtenir un curseur de base de données
 from db import get_db_cursor
 
 
@@ -11,16 +12,10 @@ def list_rentals(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
 ) -> List[dict]:
-    """
-    Jib liste mte3 les locations avec possibilité de filtrage
-    customer_id: filtrer par client (optionnel)
-    car_id: filtrer par voiture (optionnel)
-    start_date: filtrer par date de début (optionnel)
-    end_date: filtrer par date de fin (optionnel)
-    Retourne: liste de locations avec infos client et voiture
-    """
+    """Liste des locations avec filtres optionnels"""
+    # Obtenir un curseur de base de données
     with get_db_cursor(dictionary=True) as cur:
-        # Requête de base avec JOIN pour avoir infos client et voiture
+        # Requête SQL de base avec JOIN pour récupérer infos client et voiture
         query = """
             SELECT r.*, c.first_name, c.last_name, car.brand, car.model, car.plate
             FROM rentals r
@@ -28,46 +23,47 @@ def list_rentals(
             JOIN cars car ON car.id = r.car_id
             WHERE 1=1
         """
-        params: list[Any] = []
-
-        # Ajouter les filtres dynamiquement selon les paramètres
+        # Liste pour stocker les paramètres de la requête
+        params = []
+        # Si un ID client est fourni, ajouter le filtre
         if customer_id:
             query += " AND r.customer_id = %s"
             params.append(customer_id)
+        # Si un ID voiture est fourni, ajouter le filtre
         if car_id:
             query += " AND r.car_id = %s"
             params.append(car_id)
+        # Si une date de début est fournie, ajouter le filtre
         if start_date:
             query += " AND r.start_date >= %s"
             params.append(start_date)
+        # Si une date de fin est fournie, ajouter le filtre
         if end_date:
             query += " AND r.end_date <= %s"
             params.append(end_date)
-
+        # Ajouter le tri par date de création (plus récent en premier)
         query += " ORDER BY r.created_at DESC"
-
+        # Exécuter la requête avec les paramètres
         cur.execute(query, params)
+        # Retourner tous les résultats
         return cur.fetchall()
 
 
 def get_rental(rental_id: int) -> Optional[dict]:
-    """
-    Jib information mte3 location spécifique par ID
-    rental_id: ID mte3 la location
-    Retourne: dictionnaire avec les infos de la location ou None si pas trouvée
-    """
+    """Récupérer une location par ID"""
+    # Obtenir un curseur de base de données
     with get_db_cursor(dictionary=True) as cur:
+        # Exécuter une requête SQL pour récupérer une location par son ID
         cur.execute("SELECT * FROM rentals WHERE id = %s", (rental_id,))
+        # Retourner le premier résultat (ou None si pas trouvé)
         return cur.fetchone()
 
 
 def create_rental(data: Dict[str, Any]) -> int:
-    """
-    Zid location jdida fi la base de données
-    data: dictionnaire contenant les informations de la location
-    Retourne: ID mte3 la location créée
-    """
+    """Créer une nouvelle location"""
+    # Obtenir un curseur de base de données
     with get_db_cursor(dictionary=True) as cur:
+        # Exécuter une requête SQL INSERT pour créer une nouvelle location
         cur.execute(
             """
             INSERT INTO rentals (
@@ -77,10 +73,10 @@ def create_rental(data: Dict[str, Any]) -> int:
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NULL)
             """,
             (
-                data["customer_id"],  # ID mte3 le client
-                data["car_id"],  # ID mte3 la voiture
-                data["start_date"],  # Date de début
-                data["end_date"],  # Date de fin
+                data["customer_id"],  # ID du client
+                data["car_id"],  # ID de la voiture
+                data["start_date"],  # Date de début de location
+                data["end_date"],  # Date de fin de location
                 data["days"],  # Nombre de jours
                 data["daily_price"],  # Prix par jour
                 data["total"],  # Total à payer
@@ -88,78 +84,38 @@ def create_rental(data: Dict[str, Any]) -> int:
                 datetime.now().strftime("%Y-%m-%d %H:%M:%S"),  # Date de création
             ),
         )
-        return cur.lastrowid  # Retourner l'ID de la location créée
+        # Retourner l'ID de la location créée
+        return cur.lastrowid
 
 
-def update_rental(rental_id: int, data: Dict[str, Any]) -> None:
-    """
-    Badal information mte3 location existante
-    rental_id: ID mte3 la location à modifier
-    data: dictionnaire avec les nouvelles informations
-    """
+def set_rental_status(rental_id: int, status: str, returned_at: Optional[str] = None) -> None:
+    """Modifier le statut d'une location"""
+    # Obtenir un curseur de base de données
     with get_db_cursor(dictionary=True) as cur:
+        # Exécuter une requête SQL UPDATE pour modifier le statut
         cur.execute(
-            """
-            UPDATE rentals
-            SET customer_id = %s, car_id = %s, start_date = %s, end_date = %s,
-                days = %s, daily_price = %s, total = %s, status = %s, returned_at = %s
-            WHERE id = %s
-            """,
-            (
-                data["customer_id"],
-                data["car_id"],
-                data["start_date"],
-                data["end_date"],
-                data["days"],
-                data["daily_price"],
-                data["total"],
-                data["status"],
-                data.get("returned_at"),
-                rental_id,
-            ),
-        )
-
-
-def set_rental_status(
-    rental_id: int, status: str, returned_at: Optional[str] = None
-) -> None:
-    """
-    Badal statut mte3 location (active, returned, canceled)
-    rental_id: ID mte3 la location
-    status: nouveau statut
-    returned_at: date de retour (optionnel, pour statut "returned")
-    """
-    with get_db_cursor(dictionary=True) as cur:
-        cur.execute(
-            """
-            UPDATE rentals
-            SET status = %s, returned_at = %s
-            WHERE id = %s
-            """,
-            (status, returned_at, rental_id),
+            "UPDATE rentals SET status = %s, returned_at = %s WHERE id = %s",
+            (status, returned_at, rental_id),  # Nouveau statut, date de retour, ID de la location
         )
 
 
 def total_revenue() -> float:
-    """
-    7seb total mte3 les revenus men les locations (ma t3ammelch les annulées)
-    Retourne: somme totale des locations non annulées
-    """
+    """Calculer le total des revenus (locations non annulées)"""
+    # Obtenir un curseur de base de données
     with get_db_cursor(dictionary=True) as cur:
-        cur.execute(
-            "SELECT COALESCE(SUM(total), 0) as total FROM rentals WHERE status != 'canceled'"
-        )
+        # Exécuter une requête SQL pour calculer la somme des totaux (exclure les annulées)
+        cur.execute("SELECT COALESCE(SUM(total), 0) as total FROM rentals WHERE status != 'canceled'")
+        # Récupérer le résultat
         result = cur.fetchone()
+        # Retourner le total (0.0 si aucun résultat)
         return float(result['total']) if result else 0.0
 
 
 def latest_rentals(limit: int = 5) -> List[dict]:
-    """
-    Jib dernières locations créées
-    limit: nombre de locations à retourner (par défaut: 5)
-    Retourne: liste des dernières locations avec infos client et voiture
-    """
+    """Récupérer les dernières locations"""
+    # Obtenir un curseur de base de données
     with get_db_cursor(dictionary=True) as cur:
+        # Exécuter une requête SQL avec JOIN pour récupérer les dernières locations
         cur.execute(
             """
             SELECT r.*, c.first_name, c.last_name, car.brand, car.model, car.plate
@@ -169,6 +125,7 @@ def latest_rentals(limit: int = 5) -> List[dict]:
             ORDER BY r.created_at DESC
             LIMIT %s
             """,
-            (limit,),
+            (limit,),  # Limite du nombre de résultats
         )
+        # Retourner tous les résultats
         return cur.fetchall()

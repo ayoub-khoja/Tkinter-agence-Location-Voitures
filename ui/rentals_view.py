@@ -3,7 +3,6 @@ from tkinter import ttk, messagebox
 
 from repositories import customers_repo
 from services import rentals_service, cars_service
-from utils import validators
 from utils.formatters import format_money
 
 
@@ -362,15 +361,6 @@ class RentalsView(ctk.CTkFrame):
             )
 
     def on_filter(self):
-        # validate dates if provided
-        try:
-            if self.var_filter_start.get():
-                validators.validate_date(self.var_filter_start.get(), "Date début filtre")
-            if self.var_filter_end.get():
-                validators.validate_date(self.var_filter_end.get(), "Date fin filtre")
-        except Exception as exc:
-            messagebox.showerror("Erreur", str(exc))
-            return
         self.refresh()
 
     def on_clear_filters(self):
@@ -407,8 +397,8 @@ class RentalsView(ctk.CTkFrame):
     def _collect_form_data(self, for_calculation_only=False):
         customer_label = self.var_customer.get()
         car_label = self.var_car.get()
-        start = validators.validate_date(self.var_start_date.get(), "Date début")
-        end = validators.validate_date(self.var_end_date.get(), "Date fin")
+        start = self.var_start_date.get().strip()
+        end = self.var_end_date.get().strip()
 
         customer_id = self.customers_map.get(customer_label)
         car_id = self.cars_map.get(car_label)

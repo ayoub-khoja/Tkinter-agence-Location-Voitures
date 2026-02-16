@@ -2,7 +2,6 @@ import customtkinter as ctk
 from tkinter import ttk, messagebox
 
 from services import cars_service
-from utils import validators
 
 
 class CarsView(ctk.CTkFrame):
@@ -452,20 +451,12 @@ class CarsView(ctk.CTkFrame):
 
     def on_save(self):
         try:
-            brand = validators.require(self.var_brand.get(), "Marque")
-            model = validators.require(self.var_model.get(), "Modèle")
-            year = validators.validate_int(self.var_year.get(), "Année")
-            plate = validators.require(self.var_plate.get(), "Immatriculation")
-            price = validators.validate_float(self.var_price.get(), "Prix par jour")
-            if price <= 0:
-                raise ValueError("Le prix par jour doit être supérieur à 0.")
-
             data = {
-                "brand": brand,
-                "model": model,
-                "year": year,
-                "plate": plate,
-                "price_per_day": price,
+                "brand": self.var_brand.get().strip(),
+                "model": self.var_model.get().strip(),
+                "year": int(self.var_year.get()),
+                "plate": self.var_plate.get().strip(),
+                "price_per_day": float(self.var_price.get()),
                 "status": self.var_status.get() or "available",
             }
             cars_service.save_car(self.selected_id, data)

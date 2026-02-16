@@ -2,7 +2,6 @@ import customtkinter as ctk
 from tkinter import ttk, messagebox
 
 from repositories import customers_repo
-from utils import validators
 
 
 class CustomersView(ctk.CTkFrame):
@@ -399,18 +398,12 @@ class CustomersView(ctk.CTkFrame):
 
     def on_save(self):
         try:
-            first_name = validators.require(self.var_first_name.get(), "Prénom")
-            last_name = validators.require(self.var_last_name.get(), "Nom")
-            cin = validators.require(self.var_cin.get(), "CIN")
-            phone = validators.require(self.var_phone.get(), "Téléphone")
-            email = validators.optional(self.var_email.get())
-
             data = {
-                "first_name": first_name,
-                "last_name": last_name,
-                "cin": cin,
-                "phone": phone,
-                "email": email,
+                "first_name": self.var_first_name.get().strip(),
+                "last_name": self.var_last_name.get().strip(),
+                "cin": self.var_cin.get().strip(),
+                "phone": self.var_phone.get().strip(),
+                "email": self.var_email.get().strip() or None,
             }
             if self.selected_id:
                 customers_repo.update_customer(self.selected_id, data)

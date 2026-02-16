@@ -1,23 +1,21 @@
-# Importation des bibliothèques nécessaires
+# Importation de customtkinter pour l'interface graphique
 import customtkinter as ctk
-
+# Importation de la classe principale de l'application
 from ui.app import CarRentalApp
 
 
 def main():
-    """
-    Fonction principale - t7awel l'application
-    Crée la fenêtre principale et lance l'application de location de voitures
-    """
-    # Créer la fenêtre principale (root window)
+    """Point d'entrée de l'application"""
+    # Créer la fenêtre principale de l'application
     root = ctk.CTk()
-    # Créer l'application de location de voitures
+    # Créer l'instance de l'application avec la fenêtre principale
     app = CarRentalApp(root)
-    # Lancer la boucle principale de l'interface graphique
+    # Lancer la boucle principale pour afficher l'interface
     root.mainloop()
 
 
+# Si le fichier est exécuté directement (pas importé)
 if __name__ == "__main__":
-    # Lancer l'application quand le script est exécuté directement
+    # Appeler la fonction principale
     main()
 
