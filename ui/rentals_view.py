@@ -428,12 +428,10 @@ class RentalsView(ctk.CTkFrame):
         return data
 
     def on_calculate(self):
+        """Calculate rental days and display total."""
         try:
             data = self._collect_form_data(for_calculation_only=True)
             days = rentals_service.calculate_days(data["start_date"], data["end_date"])
-            # need price from car
-            # use list_available + fallback: we don't have direct car here, but service will recalc on save anyway
-            # just display days
             self.var_total.set(f"{days} jours (total exact lors de la validation)")
         except Exception as exc:
             messagebox.showerror("Erreur", str(exc))

@@ -40,7 +40,18 @@ class CarRentalApp:
             "danger": "#EF4444",         # Red 500
         }
 
-        setup_database()
+        try:
+            setup_database()
+        except Exception as e:
+            messagebox.showwarning(
+                "Database Connection Warning",
+                f"Could not connect to MySQL database:\n{str(e)}\n\n"
+                "Please make sure:\n"
+                "1. XAMPP MySQL is running\n"
+                "2. Database 'car_rental_db' exists\n\n"
+                "The application will continue, but database features may not work."
+            )
+        
         self._build_layout()
 
     def _build_layout(self):

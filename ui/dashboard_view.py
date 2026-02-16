@@ -280,28 +280,21 @@ class DashboardView(ctk.CTkFrame):
         rentals = rentals_service.latest_rentals(5)
         
         if not rentals:
-            # Show empty state
-            self.tree.insert(
-                "", "end",
-                values=("", "Aucune location", "", "", "", "")
-            )
+            self.tree.insert("", "end", values=("", "Aucune location", "", "", "", ""))
         else:
+            status_map = {
+                "active": "🟢 Actif",
+                "returned": "✅ Retourné",
+                "cancelled": "❌ Annulé"
+            }
             for rental in rentals:
                 client = f"{rental['first_name']} {rental['last_name']}"
-                car = f"{rental['brand']} {rental['model']}"
-                plate = f"({rental['plate']})"
+                car = f"{rental['brand']} {rental['model']} ({rental['plate']})"
                 period = f"{rental['start_date']} → {rental['end_date']}"
                 total = format_money(rental["total"])
-                status = rental["status"]
-                
-                # Enhanced status display with emojis
-                status_display = {
-                    "active": "🟢 Actif",
-                    "returned": "✅ Retourné",
-                    "cancelled": "❌ Annulé"
-                }.get(status, f"📌 {status.capitalize()}")
+                status_display = status_map.get(rental["status"], f"📌 {rental['status'].capitalize()}")
                 
                 self.tree.insert(
                     "", "end",
-                    values=(rental["id"], client, f"{car} {plate}", period, total, status_display)
+                    values=(rental["id"], client, car, period, total, status_display)
                 )

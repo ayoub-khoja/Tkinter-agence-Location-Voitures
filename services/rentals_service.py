@@ -1,3 +1,4 @@
+# Service pour la gestion des locations - logique métier
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 
@@ -5,19 +6,29 @@ from repositories import rentals_repo, cars_repo, customers_repo
 from services import cars_service
 
 
-DATE_FMT = "%Y-%m-%d"
+DATE_FMT = "%Y-%m-%d"  # Format de date utilisé dans l'application
 
 
 def _parse_date(value: str) -> datetime:
+    """
+    Convertir string date vers objet datetime
+    Fonction interne utilisée pour les calculs
+    """
     return datetime.strptime(value, DATE_FMT)
 
 
 def calculate_days(start: str, end: str) -> int:
+    """
+    7seb nombre de jours entre deux dates (inclus)
+    start: date de début (format YYYY-MM-DD)
+    end: date de fin (format YYYY-MM-DD)
+    Retourne: nombre de jours
+    """
     start_dt = _parse_date(start)
     end_dt = _parse_date(end)
     if end_dt < start_dt:
         raise ValueError("La date de fin doit être supérieure ou égale à la date de début.")
-    days = (end_dt - start_dt).days + 1
+    days = (end_dt - start_dt).days + 1  # +1 pour inclure le jour de début
     if days <= 0:
         raise ValueError("Le nombre de jours doit être supérieur à 0.")
     return days
@@ -29,11 +40,20 @@ def list_rentals(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
 ) -> List[dict]:
+    """
+    Jib liste mte3 les locations avec filtres optionnels
+    """
     return rentals_repo.list_rentals(customer_id, car_id, start_date, end_date)
 
 
 def create_rental(data: Dict[str, Any]) -> int:
-    # basic checks
+    """
+    Créer nouvelle location avec vérifications
+    Vérifie que client et voiture existent, que voiture disponible
+    7seb nombre de jours et total automatiquement
+    Badal statut voiture à "rented"
+    """
+    # Vérifications de base
     customer = customers_repo.get_customer(data["customer_id"])
     if not customer:
         raise ValueError("Client introuvable.")
@@ -42,9 +62,11 @@ def create_rental(data: Dict[str, Any]) -> int:
     if not car:
         raise ValueError("Voiture introuvable.")
 
+    # Vérifier que la voiture n'est pas déjà en location
     if car["status"] == "rented":
         raise ValueError("Cette voiture est déjà en location.")
 
+    # Calculer nombre de jours et total
     days = calculate_days(data["start_date"], data["end_date"])
     daily_price = float(car["price_per_day"])
     if daily_price <= 0:
@@ -52,6 +74,7 @@ def create_rental(data: Dict[str, Any]) -> int:
 
     total = days * daily_price
 
+    # Préparer les données pour la création
     payload = {
         "customer_id": data["customer_id"],
         "car_id": data["car_id"],
@@ -60,39 +83,57 @@ def create_rental(data: Dict[str, Any]) -> int:
         "days": days,
         "daily_price": daily_price,
         "total": total,
-        "status": "active",
+        "status": "active",  # Statut initial: active
     }
     rental_id = rentals_repo.create_rental(payload)
-    # mark car rented
+    # Marquer la voiture comme "rented" (en location)
     cars_service.set_car_status(data["car_id"], "rented")
     return rental_id
 
 
 def return_rental(rental_id: int) -> None:
+    """
+    Marquer location comme retournée
+    Badal statut location à "returned" et statut voiture à "available"
+    """
     rental = rentals_repo.get_rental(rental_id)
     if not rental:
         raise ValueError("Location introuvable.")
     if rental["status"] != "active":
         raise ValueError("Seules les locations actives peuvent être retournées.")
+    # Enregistrer date de retour
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     rentals_repo.set_rental_status(rental_id, "returned", now)
+    # Libérer la voiture (devenir disponible)
     cars_service.set_car_status(rental["car_id"], "available")
 
 
 def cancel_rental(rental_id: int) -> None:
+    """
+    Annuler location active
+    Badal statut location à "canceled" et statut voiture à "available"
+    """
     rental = rentals_repo.get_rental(rental_id)
     if not rental:
         raise ValueError("Location introuvable.")
     if rental["status"] != "active":
         raise ValueError("Seules les locations actives peuvent être annulées.")
     rentals_repo.set_rental_status(rental_id, "canceled", rental.get("returned_at"))
+    # Libérer la voiture (devenir disponible)
     cars_service.set_car_status(rental["car_id"], "available")
 
 
 def total_revenue() -> float:
+    """
+    Jib total mte3 les revenus (pour le dashboard)
+    """
     return rentals_repo.total_revenue()
 
 
 def latest_rentals(limit: int = 5) -> List[dict]:
+    """
+    Jib dernières locations (pour le dashboard)
+    limit: nombre de locations à afficher
+    """
     return rentals_repo.latest_rentals(limit)
 

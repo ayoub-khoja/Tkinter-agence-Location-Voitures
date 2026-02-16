@@ -428,12 +428,15 @@ class CarsView(ctk.CTkFrame):
         price = price_str.replace(" TND", "").strip()
         self.var_price.set(price)
         # Extract status from display
-        if "Disponible" in status_display:
-            self.var_status.set("available")
-        elif "location" in status_display:
-            self.var_status.set("rented")
-        elif "Maintenance" in status_display:
-            self.var_status.set("maintenance")
+        status_map = {
+            "Disponible": "available",
+            "location": "rented",
+            "Maintenance": "maintenance"
+        }
+        for key, value in status_map.items():
+            if key in status_display:
+                self.var_status.set(value)
+                break
 
     def clear_form(self):
         self.selected_id = None
