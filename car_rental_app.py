@@ -4,7 +4,6 @@ from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
 import os
 import mysql.connector
-from mysql.connector import Error
 from contextlib import contextmanager
 from typing import Iterator, List, Optional, Dict, Any
 from datetime import datetime
@@ -22,42 +21,25 @@ DB_CONFIG = {
 
 def get_connection():
     """Connexion à MySQL"""
-    try:
-        conn = mysql.connector.connect(**DB_CONFIG)
-        if conn.is_connected():
-            return conn
-    except Error as e:
-        print(f"Erreur de connexion à MySQL: {e}")
-        raise
+    conn = mysql.connector.connect(**DB_CONFIG)
+    if conn.is_connected():
+        return conn
 
 @contextmanager
 def get_db_connection() -> Iterator[mysql.connector.MySQLConnection]:
-    
-    conn = None
-    try:
-        conn = get_connection()
-        yield conn
-    except Error as e:
-        if conn:
-            conn.rollback()
-        raise
-    finally:
-        if conn and conn.is_connected():
-            conn.close()
+    conn = get_connection()
+    yield conn
+    if conn and conn.is_connected():
+        conn.close()
 
 @contextmanager
 def get_db_cursor(dictionary: bool = True) -> Iterator[mysql.connector.cursor.MySQLCursor]:
     """manager pour curseurs """
     with get_db_connection() as conn:
         cur = conn.cursor(dictionary=dictionary)
-        try:
-            yield cur
-            conn.commit()
-        except Error:
-            conn.rollback()
-            raise
-        finally:
-            cur.close()
+        yield cur
+        conn.commit()
+        cur.close()
 
 def setup_database():
     """Vérifier connexion à la base de données"""
@@ -1128,21 +1110,18 @@ class CarsView(ctk.CTkFrame):
         self.clear_form()
 
     def on_save(self):
-        try:
-            data = {
-                "brand": self.var_brand.get().strip(),
-                "model": self.var_model.get().strip(),
-                "year": int(self.var_year.get()),
-                "plate": self.var_plate.get().strip(),
-                "price_per_day": float(self.var_price.get()),
-                "status": self.var_status.get() or "available",
-            }
-            CarsService.save_car(self.selected_id, data)
-            self.refresh()
-            messagebox.showinfo("Succès", "Voiture enregistrée avec succès.")
-            self.clear_form()
-        except Exception as exc:
-            messagebox.showerror("Erreur", str(exc))
+        data = {
+            "brand": self.var_brand.get().strip(),
+            "model": self.var_model.get().strip(),
+            "year": int(self.var_year.get()),
+            "plate": self.var_plate.get().strip(),
+            "price_per_day": float(self.var_price.get()),
+            "status": self.var_status.get() or "available",
+        }
+        CarsService.save_car(self.selected_id, data)
+        self.refresh()
+        messagebox.showinfo("Succès", "Voiture enregistrée avec succès.")
+        self.clear_form()
 
     def on_delete(self):
         if not self.selected_id:
@@ -1155,13 +1134,10 @@ class CarsView(ctk.CTkFrame):
             is False
         ):
             return
-        try:
-            CarsService.delete_car(self.selected_id)
-            self.clear_form()
-            self.refresh()
-            messagebox.showinfo("Succès", "Voiture supprimée avec succès.")
-        except Exception as exc:
-            messagebox.showerror("Erreur", str(exc))
+        CarsService.delete_car(self.selected_id)
+        self.clear_form()
+        self.refresh()
+        messagebox.showinfo("Succès", "Voiture supprimée avec succès.")
 
 
 class CustomersView(ctk.CTkFrame):
@@ -1546,22 +1522,19 @@ class CustomersView(ctk.CTkFrame):
         self.clear_form()
 
     def on_save(self):
-        try:
-            data = {
-                "first_name": self.var_first_name.get().strip(),
-                "last_name": self.var_last_name.get().strip(),
-                "cin": self.var_cin.get().strip(),
-                "phone": self.var_phone.get().strip(),
-                "email": self.var_email.get().strip() or None,
-            }
-            if self.selected_id:
-                CustomersRepo.update_customer(self.selected_id, data)
-            else:
-                self.selected_id = CustomersRepo.create_customer(data)
-            self.refresh()
-            messagebox.showinfo("Succès", "Client enregistré avec succès.")
-        except Exception as exc:
-            messagebox.showerror("Erreur", str(exc))
+        data = {
+            "first_name": self.var_first_name.get().strip(),
+            "last_name": self.var_last_name.get().strip(),
+            "cin": self.var_cin.get().strip(),
+            "phone": self.var_phone.get().strip(),
+            "email": self.var_email.get().strip() or None,
+        }
+        if self.selected_id:
+            CustomersRepo.update_customer(self.selected_id, data)
+        else:
+            self.selected_id = CustomersRepo.create_customer(data)
+        self.refresh()
+        messagebox.showinfo("Succès", "Client enregistré avec succès.")
 
     def on_delete(self):
         if not self.selected_id:
@@ -1574,12 +1547,9 @@ class CustomersView(ctk.CTkFrame):
             is False
         ):
             return
-        try:
-            CustomersRepo.delete_customer(self.selected_id)
-            self.clear_form()
-            self.refresh()
-        except Exception as exc:
-            messagebox.showerror("Erreur", str(exc))
+        CustomersRepo.delete_customer(self.selected_id)
+        self.clear_form()
+        self.refresh()
 
 
 class RentalsView(ctk.CTkFrame):
@@ -1983,22 +1953,16 @@ class RentalsView(ctk.CTkFrame):
         return data
 
     def on_calculate(self):
-        try:
-            data = self._collect_form_data(for_calculation_only=True)
-            days = RentalsService.calculate_days(data["start_date"], data["end_date"])
-            self.var_total.set(f"{days} jours (total exact lors de la validation)")
-        except Exception as exc:
-            messagebox.showerror("Erreur", str(exc))
+        data = self._collect_form_data(for_calculation_only=True)
+        days = RentalsService.calculate_days(data["start_date"], data["end_date"])
+        self.var_total.set(f"{days} jours (total exact lors de la validation)")
 
     def on_save(self):
-        try:
-            data = self._collect_form_data()
-            rental_id = RentalsService.create_rental(data)
-            self.selected_id = rental_id
-            self.refresh()
-            messagebox.showinfo("Succès", "Location créée avec succès.")
-        except Exception as exc:
-            messagebox.showerror("Erreur", str(exc))
+        data = self._collect_form_data()
+        rental_id = RentalsService.create_rental(data)
+        self.selected_id = rental_id
+        self.refresh()
+        messagebox.showinfo("Succès", "Location créée avec succès.")
 
     def on_return(self):
         if not self.selected_id:
@@ -2006,11 +1970,8 @@ class RentalsView(ctk.CTkFrame):
             return
         if messagebox.askyesno("Confirmation", "Marquer ce véhicule comme 'retourné' ?") is False:
             return
-        try:
-            RentalsService.return_rental(self.selected_id)
-            self.refresh()
-        except Exception as exc:
-            messagebox.showerror("Erreur", str(exc))
+        RentalsService.return_rental(self.selected_id)
+        self.refresh()
 
     def on_cancel(self):
         if not self.selected_id:
@@ -2018,11 +1979,8 @@ class RentalsView(ctk.CTkFrame):
             return
         if messagebox.askyesno("Confirmation", "Annuler cette location ?") is False:
             return
-        try:
-            RentalsService.cancel_rental(self.selected_id)
-            self.refresh()
-        except Exception as exc:
-            messagebox.showerror("Erreur", str(exc))
+        RentalsService.cancel_rental(self.selected_id)
+        self.refresh()
 
 
 # ============================================================================
@@ -2053,18 +2011,7 @@ class CarRentalApp:
             "danger": "#EF4444",
         }
 
-        try:
-            setup_database()
-        except Exception as e:
-            messagebox.showwarning(
-                "Database Connection Warning",
-                f"Could not connect to MySQL database:\n{str(e)}\n\n"
-                "Please make sure:\n"
-                "1. XAMPP MySQL is running\n"
-                "2. Database 'car_rental_db' exists\n\n"
-                "The application will continue, but database features may not work."
-            )
-        
+        setup_database()
         self._build_layout()
 
     def _build_layout(self):
@@ -2089,18 +2036,15 @@ class CarRentalApp:
         
         logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
         if os.path.exists(logo_path):
-            try:
-                logo_img = Image.open(logo_path)
-                logo_img = logo_img.resize((60, 60), Image.Resampling.LANCZOS)
-                self.logo_photo = ImageTk.PhotoImage(logo_img)
-                logo_label = ctk.CTkLabel(
-                    logo_frame,
-                    image=self.logo_photo,
-                    text=""
-                )
-                logo_label.pack(anchor="w", pady=(0, 10))
-            except:
-                pass
+            logo_img = Image.open(logo_path)
+            logo_img = logo_img.resize((60, 60), Image.Resampling.LANCZOS)
+            self.logo_photo = ImageTk.PhotoImage(logo_img)
+            logo_label = ctk.CTkLabel(
+                logo_frame,
+                image=self.logo_photo,
+                text=""
+            )
+            logo_label.pack(anchor="w", pady=(0, 10))
         
         brand_label = ctk.CTkLabel(
             logo_frame,
@@ -2203,10 +2147,7 @@ class CarRentalApp:
         self.current_view.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
 
         if hasattr(self.current_view, "refresh"):
-            try:
-                self.current_view.refresh()
-            except Exception as exc:
-                messagebox.showerror("Erreur", str(exc))
+            self.current_view.refresh()
 
 
 # ============================================================================
