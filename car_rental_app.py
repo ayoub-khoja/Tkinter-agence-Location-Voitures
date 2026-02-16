@@ -5,7 +5,6 @@ from PIL import Image, ImageTk
 import os
 import mysql.connector
 from contextlib import contextmanager
-from typing import Iterator, List, Optional, Dict, Any
 from datetime import datetime
 
 
@@ -26,14 +25,14 @@ def get_connection():
         return conn
 
 @contextmanager
-def get_db_connection() -> Iterator[mysql.connector.MySQLConnection]:
+def get_db_connection():
     conn = get_connection()
     yield conn
     if conn and conn.is_connected():
         conn.close()
 
 @contextmanager
-def get_db_cursor(dictionary: bool = True) -> Iterator[mysql.connector.cursor.MySQLCursor]:
+def get_db_cursor(dictionary: bool = True):
     """manager pour curseurs """
     with get_db_connection() as conn:
         cur = conn.cursor(dictionary=dictionary)
@@ -54,7 +53,7 @@ def setup_database():
 
 class CarsRepo:
     @staticmethod
-    def list_cars(search: Optional[str] = None) -> List[dict]:
+    def list_cars(search=None):
         with get_db_cursor(dictionary=True) as cur:
             if search:
                 pattern = f"%{search}%"
@@ -67,19 +66,19 @@ class CarsRepo:
             return cur.fetchall()
 
     @staticmethod
-    def list_available_cars() -> List[dict]:
+    def list_available_cars():
         with get_db_cursor(dictionary=True) as cur:
             cur.execute("SELECT * FROM cars WHERE status = 'available' ORDER BY brand, model, year")
             return cur.fetchall()
 
     @staticmethod
-    def get_car(car_id: int) -> Optional[dict]:
+    def get_car(car_id):
         with get_db_cursor(dictionary=True) as cur:
             cur.execute("SELECT * FROM cars WHERE id = %s", (car_id,))
             return cur.fetchone()
 
     @staticmethod
-    def create_car(data: Dict[str, Any]) -> int:
+    def create_car(data):
         with get_db_cursor(dictionary=True) as cur:
             cur.execute(
                 "INSERT INTO cars (brand, model, year, plate, price_per_day, status, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s)",
@@ -96,7 +95,7 @@ class CarsRepo:
             return cur.lastrowid
 
     @staticmethod
-    def update_car(car_id: int, data: Dict[str, Any]) -> None:
+    def update_car(car_id, data):
         with get_db_cursor(dictionary=True) as cur:
             cur.execute(
                 "UPDATE cars SET brand = %s, model = %s, year = %s, plate = %s, price_per_day = %s, status = %s WHERE id = %s",
@@ -112,12 +111,12 @@ class CarsRepo:
             )
 
     @staticmethod
-    def delete_car(car_id: int) -> None:
+    def delete_car(car_id):
         with get_db_cursor(dictionary=True) as cur:
             cur.execute("DELETE FROM cars WHERE id = %s", (car_id,))
 
     @staticmethod
-    def has_active_rental(car_id: int) -> bool:
+    def has_active_rental(car_id):
         with get_db_cursor(dictionary=True) as cur:
             cur.execute("SELECT EXISTS(SELECT 1 FROM rentals WHERE car_id = %s AND status = 'active') as has_active", (car_id,))
             result = cur.fetchone()
@@ -125,7 +124,7 @@ class CarsRepo:
 
 class CustomersRepo:
     @staticmethod
-    def list_customers(search: Optional[str] = None) -> List[dict]:
+    def list_customers(search=None):
         with get_db_cursor(dictionary=True) as cur:
             if search:
                 pattern = f"%{search}%"
@@ -138,13 +137,13 @@ class CustomersRepo:
             return cur.fetchall()
 
     @staticmethod
-    def get_customer(customer_id: int) -> Optional[dict]:
+    def get_customer(customer_id):
         with get_db_cursor(dictionary=True) as cur:
             cur.execute("SELECT * FROM customers WHERE id = %s", (customer_id,))
             return cur.fetchone()
 
     @staticmethod
-    def create_customer(data: Dict[str, Any]) -> int:
+    def create_customer(data):
         with get_db_cursor(dictionary=True) as cur:
             cur.execute(
                 "INSERT INTO customers (first_name, last_name, cin, phone, email, created_at) VALUES (%s, %s, %s, %s, %s, %s)",
@@ -160,7 +159,7 @@ class CustomersRepo:
             return cur.lastrowid
 
     @staticmethod
-    def update_customer(customer_id: int, data: Dict[str, Any]) -> None:
+    def update_customer(customer_id, data):
         with get_db_cursor(dictionary=True) as cur:
             cur.execute(
                 "UPDATE customers SET first_name = %s, last_name = %s, cin = %s, phone = %s, email = %s WHERE id = %s",
@@ -175,18 +174,18 @@ class CustomersRepo:
             )
 
     @staticmethod
-    def delete_customer(customer_id: int) -> None:
+    def delete_customer(customer_id):
         with get_db_cursor(dictionary=True) as cur:
             cur.execute("DELETE FROM customers WHERE id = %s", (customer_id,))
 
 class RentalsRepo:
     @staticmethod
     def list_rentals(
-        customer_id: Optional[int] = None,
-        car_id: Optional[int] = None,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-    ) -> List[dict]:
+        customer_id=None,
+        car_id=None,
+        start_date=None,
+        end_date=None,
+    ):
         with get_db_cursor(dictionary=True) as cur:
             query = """
                 SELECT r.*, c.first_name, c.last_name, car.brand, car.model, car.plate
@@ -213,13 +212,13 @@ class RentalsRepo:
             return cur.fetchall()
 
     @staticmethod
-    def get_rental(rental_id: int) -> Optional[dict]:
+    def get_rental(rental_id):
         with get_db_cursor(dictionary=True) as cur:
             cur.execute("SELECT * FROM rentals WHERE id = %s", (rental_id,))
             return cur.fetchone()
 
     @staticmethod
-    def create_rental(data: Dict[str, Any]) -> int:
+    def create_rental(data):
         with get_db_cursor(dictionary=True) as cur:
             cur.execute(
                 """
@@ -244,7 +243,7 @@ class RentalsRepo:
             return cur.lastrowid
 
     @staticmethod
-    def set_rental_status(rental_id: int, status: str, returned_at: Optional[str] = None) -> None:
+    def set_rental_status(rental_id, status, returned_at=None):
         with get_db_cursor(dictionary=True) as cur:
             cur.execute(
                 "UPDATE rentals SET status = %s, returned_at = %s WHERE id = %s",
@@ -252,14 +251,14 @@ class RentalsRepo:
             )
 
     @staticmethod
-    def total_revenue() -> float:
+    def total_revenue():
         with get_db_cursor(dictionary=True) as cur:
             cur.execute("SELECT COALESCE(SUM(total), 0) as total FROM rentals WHERE status != 'canceled'")
             result = cur.fetchone()
             return float(result['total']) if result else 0.0
 
     @staticmethod
-    def latest_rentals(limit: int = 5) -> List[dict]:
+    def latest_rentals(limit=5):
         with get_db_cursor(dictionary=True) as cur:
             cur.execute(
                 """
@@ -280,28 +279,28 @@ class RentalsRepo:
 
 class CarsService:
     @staticmethod
-    def list_cars(search: Optional[str] = None) -> List[dict]:
+    def list_cars(search=None):
         return CarsRepo.list_cars(search)
 
     @staticmethod
-    def list_available_cars() -> List[dict]:
+    def list_available_cars():
         return CarsRepo.list_available_cars()
 
     @staticmethod
-    def save_car(car_id: Optional[int], data: Dict[str, Any]) -> int:
+    def save_car(car_id, data):
         if car_id:
             CarsRepo.update_car(car_id, data)
             return car_id
         return CarsRepo.create_car(data)
 
     @staticmethod
-    def delete_car(car_id: int) -> None:
+    def delete_car(car_id):
         if CarsRepo.has_active_rental(car_id):
             raise ValueError("Impossible de supprimer cette voiture : elle est liée à une location active.")
         CarsRepo.delete_car(car_id)
 
     @staticmethod
-    def set_car_status(car_id: int, status: str) -> None:
+    def set_car_status(car_id, status):
         car = CarsRepo.get_car(car_id)
         if not car:
             raise ValueError("Voiture introuvable.")
@@ -310,7 +309,7 @@ class CarsService:
 
 class RentalsService:
     @staticmethod
-    def calculate_days(start: str, end: str) -> int:
+    def calculate_days(start, end):
         start_dt = datetime.strptime(start, "%Y-%m-%d")
         end_dt = datetime.strptime(end, "%Y-%m-%d")
         if end_dt < start_dt:
@@ -322,15 +321,15 @@ class RentalsService:
 
     @staticmethod
     def list_rentals(
-        customer_id: Optional[int] = None,
-        car_id: Optional[int] = None,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-    ) -> List[dict]:
+        customer_id=None,
+        car_id=None,
+        start_date=None,
+        end_date=None,
+    ):
         return RentalsRepo.list_rentals(customer_id, car_id, start_date, end_date)
 
     @staticmethod
-    def create_rental(data: Dict[str, Any]) -> int:
+    def create_rental(data):
         customer = CustomersRepo.get_customer(data["customer_id"])
         if not customer:
             raise ValueError("Client introuvable.")
@@ -364,7 +363,7 @@ class RentalsService:
         return rental_id
 
     @staticmethod
-    def return_rental(rental_id: int) -> None:
+    def return_rental(rental_id):
         rental = RentalsRepo.get_rental(rental_id)
         if not rental:
             raise ValueError("Location introuvable.")
@@ -375,7 +374,7 @@ class RentalsService:
         CarsService.set_car_status(rental["car_id"], "available")
 
     @staticmethod
-    def cancel_rental(rental_id: int) -> None:
+    def cancel_rental(rental_id):
         rental = RentalsRepo.get_rental(rental_id)
         if not rental:
             raise ValueError("Location introuvable.")
@@ -385,18 +384,18 @@ class RentalsService:
         CarsService.set_car_status(rental["car_id"], "available")
 
     @staticmethod
-    def total_revenue() -> float:
+    def total_revenue():
         return RentalsRepo.total_revenue()
 
     @staticmethod
-    def latest_rentals(limit: int = 5) -> List[dict]:
+    def latest_rentals(limit=5):
         return RentalsRepo.latest_rentals(limit)
 
 # ============================================================================
 # UTILITIES
 # ============================================================================
 
-def format_money(value: float) -> str:
+def format_money(value):
     """Formater valeur monétaire simplement"""
     return f"{value:.2f} TND"
 
@@ -1988,7 +1987,7 @@ class RentalsView(ctk.CTkFrame):
 # ============================================================================
 
 class CarRentalApp:
-    def __init__(self, root: ctk.CTk):
+    def __init__(self, root):
         self.root = root
         self.root.title("FASTAUTO - Location de Voiture")
         self.root.geometry("1400x800")
