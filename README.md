@@ -14,18 +14,8 @@ Application de bureau pour la gestion d'une agence de location de voitures.
 - Python 3.8+
 - XAMPP (MySQL)
 
-## Installation
 
-1. **Cloner le projet**
-
-2. **Installer les dépendances**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Démarrer MySQL via XAMPP**
-
-4. **Lancer l'application**
+1. **Lancer l'application**
    ```bash
    python main.py
    ```
